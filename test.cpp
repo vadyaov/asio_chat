@@ -16,39 +16,17 @@ int main() {
 
   message.header.id = MessageType::DEAFULT;
   
-  int a = 10;
-  bool b = false;
-  float c = 1.08;
+  std::string str = "Hello, world!";
+  
+  message.AppendString(str);
+  message.AppendString("const std::string &str");
 
-  struct S {
-    int d1;
-    char d2;
-  } d {7, 'c'};
+  std::string s1, s2, s3;
+  message.ExtractString(s1);
+  message.ExtractString(s2);
+  message.ExtractString(s3);
 
-  std::cout << a << " " << b << " " << c << " " << d.d1 << "," << d.d2 << std::endl;
-
-  // std::cout << "int: " << sizeof(int) << std::endl;
-  // std::cout << "bool: " << sizeof(bool) << std::endl;
-  // std::cout << "float: " << sizeof(float) << std::endl;
-  // std::cout << "char: " << sizeof(char) << std::endl;
-  // std::cout << "d: " << sizeof(S) << std::endl;
-
-  message << a << b << c << d;
-
-  std::cout << message << std::endl;
-
-  a = 1;
-  b = true;
-  c = 12312.1;
-  d = {1, 'b'};
-
-  message >> d >> c >> b >> a;
-
-
-
-  std::cout << message << std::endl;
-
-  std::cout << a << " " << b << " " << c << " " << d.d1 << "," << d.d2 << std::endl;
+  std::cout << s1 << " " << s2 << std::endl;
 
   return 0;
 }
