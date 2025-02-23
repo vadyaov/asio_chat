@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
 #include "message.hpp"
@@ -18,7 +19,9 @@ enum class ChatMessageType : uint32_t
   LOGIN,
   LOGOUT,
   LIST,
+  ROOM,
   QUIT,
+  UNKNOWN
 };
 
 using chat_header = chat::message_header<ChatMessageType>;

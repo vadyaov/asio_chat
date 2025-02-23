@@ -2,18 +2,136 @@
 #include <deque>
 #include <iostream>
 #include <asio.hpp>
+#include <string>
 #include <system_error>
 #include <thread>
+#include <vector>
 
 #include "common.hpp"
 
 using asio::ip::tcp;
+
+std::vector<std::string> Split(const std::string &input, const std::string &delimiter, bool skipEmpty = false) {
+  std::vector<std::string> tokens;
+
+  if (delimiter.empty()) {
+    tokens.push_back(input);
+    return tokens;
+  }
+
+  size_t start = 0;
+  while (true) {
+    size_t pos = input.find(delimiter, start);
+    if (pos == std::string::npos) {
+      if (!skipEmpty || start < input.size()) {
+        tokens.push_back(input.substr(start));
+      }
+      break;
+    }
+
+    if (!skipEmpty || pos > start) {
+      tokens.push_back(input.substr(start, pos - start));
+    }
+    start = pos + delimiter.size();
+  }
+
+  return tokens;
+}
+
+ChatMessageType GetTypeFromString(const std::string& str) {
+  ChatMessageType type = ChatMessageType::UNKNOWN;
+
+  if (str == "login") {
+    type = ChatMessageType::LOGIN;
+  } else if (str == "logout") {
+    type = ChatMessageType::LOGOUT;
+  } else if (str == "list") {
+    type = ChatMessageType::LIST;
+  } else if (str == "room") {
+    type = ChatMessageType::ROOM;
+  } else if (str == "quit") {
+    type = ChatMessageType::QUIT;
+  }
+
+  return type;
+}
+
+std::string GetStringFromType(ChatMessageType type) {
+  std::string str = "UNKNOWN";
+
+  if (type == ChatMessageType::LOGIN) {
+    str = "LOGIN";
+  } else if (type == ChatMessageType::LOGOUT) {
+    str = "LOGOUT";
+  } else if (type == ChatMessageType::LIST) {
+    str = "LIST";
+  } else if (type == ChatMessageType::ROOM) {
+    str = "ROOM";
+  } else if (type == ChatMessageType::QUIT) {
+    str = "QUIT";
+  }
+  return str;
+}
+
 
 class chat_client {
 public:
   chat_client(asio::io_context& io, tcp::resolver::results_type& endpoints)
     : io_context_(io), socket_(io) {
     do_connect(endpoints);
+  }
+
+  static chat_message CreateMessage(const std::string& buffer) {
+    if (buffer.empty()) return {};
+
+    chat_message message;
+
+    ///     /login <room_id>  -- login to room
+    ///     /logout <room_id> -- logout from room
+    ///     /room             -- current room
+    ///     /list             -- list all rooms
+    ///     /quit             -- disconnect from server
+
+    if (buffer[0] != '/') {
+      message.header.id = ChatMessageType::TEXT;
+      message.AppendString(buffer);
+    } else {
+      std::vector<std::string> tokens = Split(buffer.substr(1), " ");
+      message.header.id = GetTypeFromString(tokens[0]);
+
+      std::cout << "Message type: " << GetStringFromType(message.header.id) << std::endl;
+      
+      /// Here is such logic when it doesnt matter what comes after the second token.
+      /// For example: /login <room_id> <some_message>
+      /// command does not take <some_message> (if it exist) to the message body
+      /// only <room_id> is matter
+
+      /// Maybe change this logic in future: example
+      /// /login <room_id> <first_message to send> -- means login with some "hello message"
+      /// /logout <room_id> <goodbye_message>      -- same
+      /// /list <limit>                            -- list rooms with limit
+      
+      std::string body = tokens.size() > 1 ? tokens[1] : "";
+      switch (message.header.id) {
+        case ChatMessageType::LOGIN:
+        case ChatMessageType::LOGOUT: {
+          std::cout << "Message body: " << body << std::endl;
+          message.AppendString(body);
+          break;
+        }
+        case ChatMessageType::ROOM:
+        case ChatMessageType::LIST:
+        case ChatMessageType::QUIT: {
+
+          break;
+        }
+        default: {
+          break;
+        }
+      }
+    }
+
+    return message;
   }
 
   void write(const chat_message& msg) {
@@ -112,35 +230,11 @@ private:
     }
   }
 
+  // dumping answer from server
   void dump_read() {
-    switch(read_message_.header.id) {
-      case ChatMessageType::TEXT: {
-        std::string message;
-        read_message_.ExtractString(message);
-        std::cout << message << std::endl;
-        break;
-      }
-      case ChatMessageType::LOGIN: {
-
-        break;
-      }
-      case ChatMessageType::LOGOUT: {
-
-        break;
-      }
-      case ChatMessageType::LIST: {
-
-        break;
-      }
-      case ChatMessageType::QUIT: {
-
-        break;
-      }
-      default: {
-        LOG_DEBUG("Unknown message type.");
-        break;
-      }
-    }
+    std::string message;
+    read_message_.ExtractString(message);
+    std::cout << message << std::endl;
   }
   
   asio::io_context& io_context_;
@@ -166,9 +260,8 @@ int main(int argc, char** argv) {
     std::thread t([&io_context]() { io_context.run(); });
 
     
-    for (std::string buffer; std::cin >> buffer; ) {
-      chat_message message;
-      message.AppendString(buffer);
+    for (std::string buffer; std::getline(std::cin, buffer); ) {
+      chat_message message = chat_client::CreateMessage(buffer);
       client.write(message);
     }
 

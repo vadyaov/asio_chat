@@ -26,6 +26,8 @@ namespace chat
     }
 
     void AppendString(const std::string& str) {
+      if (str.empty()) return;
+
       uint32_t size = static_cast<uint32_t>(str.size());
       uint32_t old_size = static_cast<uint32_t>(body.size());
 
