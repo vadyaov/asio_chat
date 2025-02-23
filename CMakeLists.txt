@@ -13,5 +13,15 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include_directories(${PROJECT_SOURCE_DIR}/asio-1.30.2/include)
 
-add_executable(chat_server server.cpp)
-add_executable(chat_client client.cpp)
+set(SERVER_SOURCES
+    server/server.cpp
+    server/server_main.cpp
+)
+
+set(CLIENT_SOURCES
+    client/client.cpp
+    client/client_main.cpp
+)
+
+add_executable(server ${SERVER_SOURCES})
+add_executable(client ${CLIENT_SOURCES})

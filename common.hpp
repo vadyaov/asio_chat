@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstddef>
 #include <cstdint>
 
 #include "message.hpp"
@@ -15,12 +14,14 @@ static const char* port = "5555";
 
 enum class ChatMessageType : uint32_t
 {
-  TEXT,
-  LOGIN,
-  LOGOUT,
-  LIST,
-  ROOM,
-  QUIT,
+  TEXT,   // need body (rooms only)
+  LOGIN,  // NOT IMPLEMENTED YET
+  LOGOUT, // NOT IMPLEMENTED YET
+  CREATE, // NOT IMPLEMENTED YET
+  DELETE, // NOT IMPLEMENTED YET
+  LIST,   // no need body (lobby only)
+  ROOM,   // no need body (rooms only)
+  QUIT,   // no need body (rooms and lobby)
   UNKNOWN
 };
 
