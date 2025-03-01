@@ -40,6 +40,12 @@ static ChatMessageType GetTypeFromString(const std::string &str) {
     type = ChatMessageType::LOGIN;
   } else if (str == "logout") {
     type = ChatMessageType::LOGOUT;
+  } else if (str == "create") {
+    type = ChatMessageType::CREATE;
+  } else if (str == "delete") {
+    type = ChatMessageType::DELETE;
+  } else if (str == "join") {
+    type = ChatMessageType::JOIN;
   } else if (str == "list") {
     type = ChatMessageType::LIST;
   } else if (str == "room") {
@@ -58,6 +64,12 @@ static std::string GetStringFromType(ChatMessageType type) {
     str = "LOGIN";
   } else if (type == ChatMessageType::LOGOUT) {
     str = "LOGOUT";
+  } else if (type == ChatMessageType::CREATE) {
+    str = "CREATE";
+  } else if (type == ChatMessageType::DELETE) {
+    str = "DELETE";
+  } else if (type == ChatMessageType::JOIN) {
+    str = "JOIN";
   } else if (type == ChatMessageType::LIST) {
     str = "LIST";
   } else if (type == ChatMessageType::ROOM) {
@@ -65,6 +77,7 @@ static std::string GetStringFromType(ChatMessageType type) {
   } else if (type == ChatMessageType::QUIT) {
     str = "QUIT";
   }
+
   return str;
 }
 
@@ -85,10 +98,12 @@ chat_message chat_client::CreateMessage(const std::string &buffer) {
 
   /*
       /login <username> <password>  -- login to server
-      /logout <room_id>             -- logout from server
+      /logout                       -- logout from server
+      /create <room_id>
+      /delete <room_id>
       /join <room_id>               -- leave current room and join to another
-      /room                         -- current room
       /list                         -- list all rooms
+      /room                         -- current room
       /quit                         -- disconnect from server
   */
 
@@ -115,6 +130,11 @@ chat_message chat_client::CreateMessage(const std::string &buffer) {
     switch (message.header.id) {
     case ChatMessageType::LOGIN:
     case ChatMessageType::LOGOUT: {
+      break;
+    }
+    case ChatMessageType::CREATE:
+    case ChatMessageType::DELETE:
+    case ChatMessageType::JOIN: {
       message.AppendString(body);
       break;
     }
@@ -197,7 +217,7 @@ void chat_client::handle_read_body(const std::error_code ec,
                                    size_t /*bytes_transfered*/) {
   LOG_DEBUG("handle_read_body:");
   if (!ec) {
-    LOG_DEBUG(read_message);
+    LOG_DEBUG(read_message_);
     dump_read();
     do_read_header();
   } else {

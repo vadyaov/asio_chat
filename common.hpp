@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <iostream>
 
 #include "message.hpp"
 
@@ -19,6 +20,7 @@ enum class ChatMessageType : uint32_t
   LOGOUT, // NOT IMPLEMENTED YET
   CREATE, // NOT IMPLEMENTED YET
   DELETE, // NOT IMPLEMENTED YET
+  JOIN,   // 
   LIST,   // no need body (lobby only)
   ROOM,   // no need body (rooms only)
   QUIT,   // no need body (rooms and lobby)

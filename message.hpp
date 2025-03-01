@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstring>
 #include <string>
 #include <vector>
 #include <cstdint>
@@ -31,7 +32,7 @@ namespace chat
       uint32_t size = static_cast<uint32_t>(str.size());
       uint32_t old_size = static_cast<uint32_t>(body.size());
 
-      body.resize(body.size() + str.size() + sizeof(uint32_t));
+      body.resize(old_size + size + sizeof(uint32_t));
 
       std::memcpy(body.data() + old_size, &size, sizeof(uint32_t));
       std::memcpy(body.data() + old_size + sizeof(uint32_t), str.data(), size);

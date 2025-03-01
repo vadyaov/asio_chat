@@ -25,3 +25,8 @@ set(CLIENT_SOURCES
 
 add_executable(server ${SERVER_SOURCES})
 add_executable(client ${CLIENT_SOURCES})
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions(server PRIVATE DEBUG_BUILD)
+    target_compile_definitions(client PRIVATE DEBUG_BUILD)
+endif()

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <asio.hpp>
+#include <map>
 #include <set>
 #include <deque>
 
@@ -8,11 +9,15 @@
 
 using asio::ip::tcp;
 
+class IRoom;
+
 class chat_participant {
 public:
   virtual ~chat_participant() {}
 
   virtual void deliver(const chat_message& msg) = 0;
+  virtual void toRoom(IRoom* room) = 0;
+  virtual void toLobby() = 0;
 };
 
 
@@ -21,26 +26,26 @@ using chat_participant_ptr = std::shared_ptr<chat_participant>;
 class IRoom {
 public:
   virtual ~IRoom() {}
-  virtual std::string name() const = 0;
   virtual void join(chat_participant_ptr participant) = 0;
   virtual void leave(chat_participant_ptr participant) = 0;
-  virtual void onMessageReceived(chat_participant_ptr sender, const chat_message& msg) = 0;
+  virtual void onMessageReceived(chat_participant_ptr sender, chat_message& msg) = 0;
 protected:
   std::set<chat_participant_ptr> participants_;
 };
 
 class chat_room : public IRoom {
 public:
-  chat_room(const std::string& name) : name_(name) {}
-
-  std::string name() const override { return name_; }
+  chat_room(chat_participant_ptr creator) : creator_(creator) {}
 
   void join(chat_participant_ptr participant) override;
   void leave(chat_participant_ptr participant) override;
 
-  void onMessageReceived(chat_participant_ptr sender, const chat_message& msg) override;
+  void onMessageReceived(chat_participant_ptr sender, chat_message& msg) override;
+
+  bool isOwner(const chat_participant_ptr& someone) { return someone == creator_; }
+
 private:
-  std::string name_;
+  chat_participant_ptr creator_;
   enum { max_recent_msgs = 100 };
   std::deque<chat_message> recent_msgs_;
 };
@@ -52,16 +57,14 @@ private:
 */
 class Lobby : public IRoom {
 public:
-  std::string name() const override { return "--Lobby--"; }
-
   void join(chat_participant_ptr participant) override;
 
   void leave(chat_participant_ptr participant) override;
 
-  void onMessageReceived(chat_participant_ptr sender, const chat_message& msg) override;
+  void onMessageReceived(chat_participant_ptr sender, chat_message& msg) override;
 
 private:
-  std::vector<std::unique_ptr<chat_room>> rooms_;
+  std::map<std::string, std::unique_ptr<chat_room>> rooms_;
 };
 
 
@@ -70,14 +73,32 @@ class chat_session
 public:
   using pointer = std::shared_ptr<chat_session>;
 
-  static pointer create(asio::io_context& io_context, IRoom& room);
+  // user can not create object in other way than calling create and creating shared_ptr
+  // --> shared_from_this() will not crash (in case when no control block for this object exists)
+  static pointer create(asio::io_context& io_context, IRoom* lobby);
 
   void start();
   void deliver(const chat_message& msg) override;
   tcp::socket& socket();
 
+  void leaveCurrentRoom() {
+    current_room_->leave(shared_from_this());
+  }
+
+  void toRoom(IRoom* new_room) override {
+    leaveCurrentRoom();
+    current_room_ = new_room;
+    current_room_->join(shared_from_this());
+  }
+
+  void toLobby() override {
+    leaveCurrentRoom();
+    current_room_ = lobby_;
+    current_room_->join(shared_from_this());
+  }
+
 private:
-  chat_session(asio::io_context& io, IRoom& room);
+  chat_session(asio::io_context& io, IRoom* lobby);
 
   void do_read_header();
   void handle_read_header(const std::error_code& ec, size_t bytes_transferred);
@@ -93,7 +114,9 @@ private:
 
   tcp::socket socket_;
 
-  IRoom& room_;
+  IRoom* current_room_;
+  IRoom* const lobby_;   
+
   chat_message read_message_;
   std::deque<chat_message> write_msgs_;
 };

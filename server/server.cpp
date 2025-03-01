@@ -1,4 +1,5 @@
 #include "server.hpp"
+#include <memory>
 
 // ----------------------Room----------------------//
 
@@ -15,7 +16,7 @@ void chat_room::leave(chat_participant_ptr participant) {
   participants_.erase(participant);
 }
 
-void chat_room::onMessageReceived(chat_participant_ptr sender, const chat_message& msg) {
+void chat_room::onMessageReceived(chat_participant_ptr sender, chat_message& msg) {
   LOG_DEBUG("chat::room::onMessageReceived");
   recent_msgs_.push_back(msg);
   while (recent_msgs_.size() > max_recent_msgs) {
@@ -30,14 +31,17 @@ void chat_room::onMessageReceived(chat_participant_ptr sender, const chat_messag
 // ----------------------Lobby----------------------//
 
 void Lobby::join(chat_participant_ptr participant) {
+  LOG_DEBUG("Lobby::join");
   participants_.insert(participant);
 }
 
 void Lobby::leave(chat_participant_ptr participant) {
+  LOG_DEBUG("Lobby::leave");
   participants_.erase(participant);
 }
 
-void Lobby::onMessageReceived(chat_participant_ptr sender, const chat_message& msg) {
+void Lobby::onMessageReceived(chat_participant_ptr sender, chat_message& msg) {
+  LOG_DEBUG("Lobby::onMessageReceived");
   chat_message answer;
   switch (msg.header.id) {
     case ChatMessageType::TEXT: {
@@ -52,18 +56,87 @@ void Lobby::onMessageReceived(chat_participant_ptr sender, const chat_message& m
       answer.AppendString("NOT IMPLEMENTED YET");
       break;
     }
+    case ChatMessageType::CREATE: {
+      std::string room_id;
+      msg.ExtractString(room_id);
+      if (room_id.empty()) {
+        answer.AppendString("No room name provided.");
+        break;
+      }
+
+      if (rooms_.find(room_id) != rooms_.cend()) {
+        answer.AppendString(room_id + " already exists.");
+        break;
+      }
+
+      rooms_.emplace(room_id, std::make_unique<chat_room>(sender));
+      break;
+    }
+    case ChatMessageType::DELETE: {
+      std::string room_id;
+      msg.ExtractString(room_id);
+      if (room_id.empty()) {
+        answer.AppendString("No room name provided.");
+        break;
+      }
+
+      const auto it = rooms_.find(room_id);
+      if (it == rooms_.cend()) {
+        answer.AppendString("Room with id " + room_id + " does not exist.");
+        break;
+      }
+
+      if (it->second->isOwner(sender)) {
+        // participants_in_room must be moved to lobby somehow when deleting room
+        // if they are not in any other room
+        rooms_.erase(it);
+      } else {
+        answer.AppendString("You don't have roots to delete this room.");
+      }
+
+      break;
+    }
+    case ChatMessageType::JOIN: {
+      std::string room_id;
+      msg.ExtractString(room_id);
+      LOG_DEBUG("room_id = " + room_id);
+      if (room_id.empty()) {
+        answer.AppendString("No room name provided.");
+        break;
+      }
+
+      const auto it = rooms_.find(room_id);
+      if (it == rooms_.cend()) {
+        answer.AppendString("Room with id " + room_id + " does not exist.");
+        break;
+      }
+
+      sender->toRoom(it->second.get());
+      
+      break;
+    }
     case ChatMessageType::LIST: {
-      for (const auto& room_ptr : rooms_) {
-        answer.AppendString(room_ptr->name());
+      if (rooms_.empty()) {
+        answer.AppendString("No rooms in this lobby.");
+      } else {
+        std::string room_list;
+        for (const auto& [name, room] : rooms_) {
+          room_list += name;
+          room_list += ' ';
+        }
+        answer.AppendString(room_list);
       }
       break;
     }
     case ChatMessageType::ROOM: {
-      answer.AppendString(name());
+      answer.AppendString("lobby");
       break;
     }
     case ChatMessageType::QUIT: {
-      answer.AppendString("Leaving " + name());
+      // TODO: wnen autorization will be done
+      // user can leave (disconnect from lobby)
+      // does it mean that user also should disconnect from server?
+      answer.AppendString("You can not leave lobby now.");
       break;
     }
     case ChatMessageType::UNKNOWN: {
@@ -80,13 +153,13 @@ void Lobby::onMessageReceived(chat_participant_ptr sender, const chat_message& m
 // ----------------------Session----------------------//
 
 chat_session::pointer chat_session::create(asio::io_context &io_context,
-                                           IRoom &room) {
-  return pointer(new chat_session(io_context, room));
+                                           IRoom* lobby) {
+  return pointer(new chat_session(io_context, lobby));
 }
 
 void chat_session::start() {
   LOG_DEBUG("chat_session::start");
-  room_.join(shared_from_this());
+  current_room_->join(shared_from_this());
   do_read_header();
 }
 
@@ -101,8 +174,8 @@ void chat_session::deliver(const chat_message &msg) {
 
 tcp::socket &chat_session::socket() { return socket_; }
 
-chat_session::chat_session(asio::io_context& io, IRoom& room)
-    : socket_(io), room_(room) {}
+chat_session::chat_session(asio::io_context& io, IRoom* room)
+    : socket_(io), lobby_(room), current_room_(room) {}
 
 void chat_session::do_read_header() {
   asio::async_read(socket_,
@@ -118,7 +191,7 @@ void chat_session::handle_read_header(const std::error_code &ec, size_t /*bytes_
     do_read_body();
   } else {
     LOG_DEBUG(ec.message());
-    room_.leave(shared_from_this());
+    current_room_->leave(shared_from_this());
   }
 }
 
@@ -136,11 +209,13 @@ void chat_session::handle_read_body(const std::error_code &ec,
                                     size_t /*bytes_transferred*/) {
   LOG_DEBUG("chat_session::handle_read_body:");
   if (!ec) {
-    room_.onMessageReceived(shared_from_this(), read_message_);
+    LOG_DEBUG(read_message_);
+    current_room_->onMessageReceived(shared_from_this(), read_message_);
+    read_message_.offset = 0;
     do_read_header();
   } else {
     LOG_DEBUG(ec.message());
-    room_.leave(shared_from_this());
+    current_room_->leave(shared_from_this());
   }
 }
 
@@ -160,7 +235,7 @@ void chat_session::handle_write_header(const std::error_code &ec,
     do_write_body();
   } else {
     LOG_DEBUG(ec.message());
-    room_.leave(shared_from_this());
+    current_room_->leave(shared_from_this());
   }
 }
 
@@ -184,7 +259,7 @@ void chat_session::handle_write_body(const std::error_code &ec,
     }
   } else {
     LOG_DEBUG(ec.message());
-    room_.leave(shared_from_this());
+    current_room_->leave(shared_from_this());
   }
 }
 
@@ -196,7 +271,7 @@ chat_server::chat_server(asio::io_context &io, const tcp::endpoint &endpoint)
 }
 
 void chat_server::start_accept() {
-  chat_session::pointer new_session = chat_session::create(io_context_, lobby_);
+  chat_session::pointer new_session = chat_session::create(io_context_, &lobby_);
   acceptor_.async_accept(new_session->socket(),
                          std::bind(&chat_server::handle_accept, this,
                                    new_session, asio::placeholders::error));
