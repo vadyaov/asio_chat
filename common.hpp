@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <iostream>
 
 #include "message.hpp"
 
@@ -13,6 +12,7 @@
 
 static const char* port = "5555";
 
+// Message from client to server
 enum class ChatMessageType : uint32_t
 {
   TEXT,   // need body (rooms only)
@@ -27,5 +27,21 @@ enum class ChatMessageType : uint32_t
   UNKNOWN
 };
 
-using chat_header = chat::message_header<ChatMessageType>;
-using chat_message = chat::message<ChatMessageType>;
+enum class ServerResponceType : uint32_t
+{
+  OK,
+  ROOM_MESSAGE,
+  INTERNAL_ERROR,
+  UNKNOWN_REQUEST,
+  INCORRECT_BODY,
+  INVALID_CONTEXT,
+  ALREADY_EXISTS,
+  NOT_FOUND,
+  FORBIDDEN,
+};
+
+using chat_header = message_header<ChatMessageType>;
+using chat_message = message<ChatMessageType>;
+
+using server_header = message_header<ServerResponceType>;
+using server_message = message<ServerResponceType>;

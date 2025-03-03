@@ -6,8 +6,8 @@ int main() {
   try {
     asio::io_context io_context;
 
-    tcp::endpoint endpoint(tcp::v4(), 5555);
-    chat_server server(io_context, endpoint);
+    asio::ip::tcp::endpoint endpoint(asio::ip::tcp::v4(), 5555);
+    Server server(io_context, endpoint);
 
     io_context.run();
 

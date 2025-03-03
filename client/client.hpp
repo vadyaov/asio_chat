@@ -2,8 +2,6 @@
 
 #include <cstddef>
 #include <deque>
-#include <string>
-#include <vector>
 
 #include "../common.hpp"
 
@@ -12,8 +10,6 @@ using asio::ip::tcp;
 class chat_client {
 public:
   chat_client(asio::io_context& io, tcp::resolver::results_type& endpoints);
-
-  static chat_message CreateMessage(const std::string& buffer);
 
   void write(const chat_message& msg);
   
@@ -40,6 +36,6 @@ private:
   
   asio::io_context& io_context_;
   tcp::socket socket_;
-  chat_message read_message_;
+  server_message read_message_;
   std::deque<chat_message> write_msgs_;
 };

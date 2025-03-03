@@ -14,6 +14,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include_directories(${PROJECT_SOURCE_DIR}/asio-1.30.2/include)
 
 set(SERVER_SOURCES
+    server/room.cpp
+    server/session.cpp
     server/server.cpp
     server/server_main.cpp
 )
