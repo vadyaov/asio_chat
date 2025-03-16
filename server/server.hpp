@@ -3,12 +3,7 @@
 #include <asio.hpp>
 #include "session.hpp"
 
-// class ICommandHandler {
-// public:
-//   virtual ~ICommandHandler() {}
-
-//   virtual void process(chat_session::pointer session, const chat_message& msg);
-// };
+class Session;
 
 class Server {
 public:

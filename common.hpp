@@ -30,7 +30,6 @@ enum class ChatMessageType : uint32_t
 enum class ServerResponceType : uint32_t
 {
   OK,
-  ROOM_MESSAGE,
   INTERNAL_ERROR,
   UNKNOWN_REQUEST,
   INCORRECT_BODY,

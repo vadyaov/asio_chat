@@ -18,22 +18,11 @@ public:
 
   asio::ip::tcp::socket& socket() { return socket_; }
   
-  void leaveCurrentRoom() {
-    if (current_room_)
-      current_room_->leave(shared_from_this());
-  }
-  
-  void toRoom(IRoom* new_room) override {
-    leaveCurrentRoom();
-    current_room_ = new_room;
-    current_room_->join(shared_from_this());
-  }
-  
-  void toLobby() override {
-    leaveCurrentRoom();
-    current_room_ = lobby_;
-    current_room_->join(shared_from_this());
-  }
+  void leaveCurrentRoom();
+  void toRoom(IRoom* new_room) override;
+  void toLobby() override;
+
+  void disconnect() override;
   
 private:
   Session(asio::io_context& io, IRoom* lobby);
@@ -43,11 +32,6 @@ private:
   void do_write_header();
   void do_write_body();
 
-  void handle_read_header(const std::error_code& ec, size_t bytes_transferred);
-  void handle_read_body(const std::error_code& ec, size_t bytes_transferred);
-  void handle_write_header(const std::error_code& ec, size_t bytes_transferred);
-  void handle_write_body(const std::error_code& ec, size_t bytes_transferred);
-  
   asio::ip::tcp::socket socket_;
   IRoom* current_room_;
   IRoom* const lobby_;
