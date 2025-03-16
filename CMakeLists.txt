@@ -17,6 +17,7 @@ set(SERVER_SOURCES
     server/room.cpp
     server/session.cpp
     server/server.cpp
+    server/command.cpp
     server/server_main.cpp
 )
 

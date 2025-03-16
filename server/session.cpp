@@ -4,7 +4,7 @@
 
 void Session::start() {
   LOG_DEBUG("Session::start");
-  current_room_->join(shared_from_this());
+  lobby_->join(shared_from_this());
   do_read_header();
 }
 
@@ -23,6 +23,7 @@ void Session::leaveCurrentRoom() {
 }
 
 void Session::toRoom(IRoom *new_room) {
+  std::cout << "Session::toRoom" << std::endl;
   leaveCurrentRoom();
   current_room_ = new_room;
   current_room_->join(shared_from_this());
@@ -31,7 +32,7 @@ void Session::toRoom(IRoom *new_room) {
 void Session::toLobby() {
   leaveCurrentRoom();
   current_room_ = nullptr;
-  current_room_->join(shared_from_this());
+  lobby_->join(shared_from_this());
 }
 
 void Session::disconnect() {
@@ -41,7 +42,7 @@ void Session::disconnect() {
 }
 
 Session::Session(asio::io_context &io, IRoom *room)
-    : socket_(io), lobby_(room), current_room_(room) {}
+    : socket_(io), lobby_(room), current_room_(nullptr) {}
 
 void Session::do_read_header() {
   asio::async_read(
@@ -51,7 +52,8 @@ void Session::do_read_header() {
           do_read_body();
         } else {
           LOG_DEBUG(ec.message());
-          current_room_->leave(shared_from_this());
+          std::cout << "Error read header" << std::endl;
+          // current_room_->leave(shared_from_this());
         }
       });
 }
@@ -65,12 +67,18 @@ void Session::do_read_body() {
         if (!ec) {
           LOG_DEBUG(read_message_);
           ClientMessageParser::parse(read_message_);
-          current_room_->onMessageReceived(shared_from_this(), read_message_);
+
+          if (current_room_)
+            current_room_->onMessageReceived(shared_from_this(), read_message_);
+          else
+            lobby_->onMessageReceived(shared_from_this(), read_message_);
+
           read_message_.offset = 0;
           do_read_header();
         } else {
           LOG_DEBUG(ec.message());
-          current_room_->leave(shared_from_this());
+          std::cout << "Error read body" << std::endl;
+          // current_room_->leave(shared_from_this());
         }
       });
 }
@@ -84,13 +92,15 @@ void Session::do_write_header() {
           do_write_body();
         } else {
           LOG_DEBUG(ec.message());
-          current_room_->leave(shared_from_this());
+          // current_room_->leave(shared_from_this());
+          std::cout << "Error write header" << std::endl;
         }
       });
 }
 
 void Session::do_write_body() {
   auto &front_message = write_msgs_.front();
+  std::cout << "Front Message: " << front_message << std::endl;
   asio::async_write(
       socket_,
       asio::buffer(front_message.body.data(), front_message.header.size),
@@ -102,7 +112,8 @@ void Session::do_write_body() {
           }
         } else {
           LOG_DEBUG(ec.message());
-          current_room_->leave(shared_from_this());
+          // current_room_->leave(shared_from_this());
+          std::cout << "Error write body" << std::endl;
         }
       });
 }

@@ -1,27 +1,24 @@
 #pragma once
 
-#include <algorithm>
 #include <memory>
 #include <set>
 #include <map>
 #include <deque>
 
-#include "command.h"
 #include "participant.hpp"
 #include "../common.hpp"
 
+class ICommandHandler;
+
 class IRoom {
 public:
-  virtual ~IRoom() {}
-
-  IRoom(const std::string& name) : name_(name) {}
-
-  virtual void join(participant_ptr participant) = 0;
-
-  virtual void leave(participant_ptr participant) = 0;
+  virtual ~IRoom();
+  IRoom(const std::string& name);
 
   const std::string& name() const { return name_; }
 
+  virtual void join(participant_ptr participant) = 0;
+  virtual void leave(participant_ptr participant) = 0;
   virtual void onMessageReceived(participant_ptr sender, chat_message& msg) = 0;
 
 protected:
@@ -32,19 +29,14 @@ protected:
 
 class ChatRoom : public IRoom {
 public:
-  explicit ChatRoom(const std::string& name, participant_ptr creator) :
-    IRoom(name),
-    creator_(creator) {
-    command_handler_ = std::make_unique<ChatRoomCommandHandler>();
-    command_handler_->initHandlers();
-  }
+  explicit ChatRoom(const std::string& name, participant_ptr creator);
 
   void join(participant_ptr participant) override;
   void leave(participant_ptr participant) override;
   void onMessageReceived(participant_ptr sender, chat_message& msg) override;
 
   bool isOwner(const participant_ptr& someone) { return someone == creator_; }
-  void deliverAll(server_message&& answer);
+  void deliverAll(const server_message& answer);
   
 private:
   participant_ptr creator_;
@@ -54,69 +46,17 @@ private:
 
 class Lobby : public IRoom {
 public:
-  Lobby() : IRoom("Lobby") {
-    command_handler_ = std::make_unique<LobbyCommandHandler>();
-    command_handler_->initHandlers();
-  }
+  Lobby();
 
   void join(participant_ptr participant) override;
   void leave(participant_ptr participant) override;
   void onMessageReceived(participant_ptr sender, chat_message& msg) override;
 
-  ServerResponceType createRoom(const std::string& room_id, participant_ptr creator) {
-    if (room_id.empty()) {
-      return ServerResponceType::INCORRECT_BODY;
-    }
+  ServerResponceType createRoom(const std::string& room_id, participant_ptr creator);
+  ServerResponceType deleteRoom(const std::string& room_id, participant_ptr deleter);
+  ServerResponceType moveParticipantToRoom(const std::string room_id, participant_ptr joiner) const;
 
-    if (rooms_.find(room_id) != rooms_.cend()) {
-      return ServerResponceType::ALREADY_EXISTS;
-    }
-
-    rooms_.emplace(room_id, std::make_unique<ChatRoom>(room_id, creator));
-    return ServerResponceType::OK;
-  }
-
-  ServerResponceType deleteRoom(const std::string& room_id, participant_ptr deleter) {
-    if (room_id.empty()) {
-      return ServerResponceType::INCORRECT_BODY;
-    }
-
-    const auto it = rooms_.find(room_id);
-    if (it == rooms_.cend()) {
-      return ServerResponceType::NOT_FOUND;
-    }
-
-    if (!it->second->isOwner(deleter)) {
-      return ServerResponceType::FORBIDDEN;
-    }
-
-    // TODO:
-    // participants_in_room must be moved to lobby somehow when deleting room
-    // if they are not in any other room
-    rooms_.erase(it);
-    return ServerResponceType::OK;
-  }
-
-  ServerResponceType moveParticipantToRoom(const std::string room_id, participant_ptr joiner) const {
-      if (room_id.empty()) {
-        return ServerResponceType::INCORRECT_BODY;
-      }
-
-      const auto it = rooms_.find(room_id);
-      if (it == rooms_.cend()) {
-        return ServerResponceType::NOT_FOUND;
-      }
-      joiner->toRoom(it->second.get());
-      return ServerResponceType::OK;
-  }
-
-  std::vector<std::string> listRooms() const {
-    std::vector<std::string> answer;
-    std::for_each(rooms_.begin(), rooms_.end(), [&answer](const auto& item) {
-      answer.push_back(item.first);
-    });
-    return answer;
-  }
+  std::vector<std::string> listRooms() const;
 
 private:
   std::map<std::string, std::unique_ptr<ChatRoom>> rooms_;
