@@ -23,6 +23,7 @@ void ChatRoom::join(participant_ptr participant) {
 }
 
 void ChatRoom::leave(participant_ptr participant) {
+  LOG_DEBUG("chat::room::leave");
   participants_.erase(participant);
   participant->toLobby();
 };
@@ -60,7 +61,7 @@ void Lobby::join(participant_ptr participant) {
 
 void Lobby::leave(participant_ptr participant) {
   participants_.erase(participant);
-  participant->disconnect();
+  // participant->disconnect();
 }
 
 void Lobby::onMessageReceived(participant_ptr sender, chat_message& msg) {

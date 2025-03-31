@@ -148,6 +148,8 @@ std::unique_ptr<ICommand> ChatRoomCommandFactory::createCommand(ChatMessageType 
     command = std::make_unique<GetNameCommand>();
   } else if (type == ChatMessageType::QUIT) {
     command = std::make_unique<QuitCommand>();
+  } else if (type == ChatMessageType::UNKNOWN) {
+    command = std::make_unique<UnknownCommand>();
   }
   
   return command;
@@ -195,5 +197,8 @@ void ICommandHandler::initHandlers() {
 }
 
 void ICommandHandler::process(chat_message& message, participant_ptr sender, IRoom* context) {
+  if (handlers_.count(message.header.id) == 0) {
+    std::cout << "Something bad gonna happen" << std::endl;
+  }
   handlers_[message.header.id]->execute(message, sender, context);
 }

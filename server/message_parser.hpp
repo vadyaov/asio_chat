@@ -86,6 +86,8 @@ static std::string GetStringFromType(ChatMessageType type) {
 class ClientMessageParser {
 public:
   static void parse(chat_message& msg) {
+    std::cout << "Type = " << GetStringFromType(msg.header.id) << std::endl;
+
     std::string content;
     msg.ExtractString(content);
 
@@ -111,8 +113,6 @@ public:
     // content starts with '/'
     std::vector<std::string> tokens = Split(content.substr(1), " ");
     msg.header.id = GetTypeFromString(tokens[0]);
-
-    std::cout << "Type = " << GetStringFromType(msg.header.id) << std::endl;
 
     /*
       Here is such logic when it doesnt matter what comes after the second

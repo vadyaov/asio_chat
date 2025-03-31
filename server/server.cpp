@@ -1,4 +1,5 @@
 #include "server.hpp"
+#include <iostream>
 
 Server::Server(asio::io_context &io, const asio::ip::tcp::endpoint &endpoint)
     : io_context_(io), acceptor_(io, endpoint) {

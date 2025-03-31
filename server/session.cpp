@@ -17,22 +17,14 @@ void Session::deliver(const server_message &msg) {
   }
 }
 
-void Session::leaveCurrentRoom() {
-  if (current_room_)
-    current_room_->leave(shared_from_this());
-}
-
 void Session::toRoom(IRoom *new_room) {
   std::cout << "Session::toRoom" << std::endl;
-  leaveCurrentRoom();
   current_room_ = new_room;
   current_room_->join(shared_from_this());
 }
 
 void Session::toLobby() {
-  leaveCurrentRoom();
   current_room_ = nullptr;
-  lobby_->join(shared_from_this());
 }
 
 void Session::disconnect() {

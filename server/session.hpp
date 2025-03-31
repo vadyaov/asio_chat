@@ -18,7 +18,6 @@ public:
 
   asio::ip::tcp::socket& socket() { return socket_; }
   
-  void leaveCurrentRoom();
   void toRoom(IRoom* new_room) override;
   void toLobby() override;
 
