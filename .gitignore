@@ -33,5 +33,11 @@
 
 .cache/
 .vscode/
-asio-1.30.2/
 build/
+asio-1.30.2/
+tutors/
+
+.clang-format
+compile_commands.json
+CMakePresets.json
+test.cpp
