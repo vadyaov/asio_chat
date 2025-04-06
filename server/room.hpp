@@ -6,7 +6,6 @@
 #include <deque>
 
 #include "participant.hpp"
-#include "../common.hpp"
 
 class ICommandHandler;
 

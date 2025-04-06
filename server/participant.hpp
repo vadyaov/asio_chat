@@ -1,7 +1,7 @@
 #pragma once
 
 #include <memory>
-#include "../common.hpp"
+#include "../message.hpp"
 
 class IRoom;
 

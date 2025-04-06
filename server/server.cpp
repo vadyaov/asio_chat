@@ -1,6 +1,5 @@
 #include "server.hpp"
 #include "session.hpp"
-#include <iostream>
 #include <system_error>
 
 Server::Server(asio::io_context &io, const asio::ip::tcp::endpoint &endpoint)

@@ -17,19 +17,11 @@ public:
   
 private:
   void do_connect(const tcp::resolver::results_type& endpoints);
-  void handle_connection(const asio::error_code& ec, tcp::endpoint next);
 
   void do_read_header();
-  void handle_read_header(const std::error_code ec, size_t bytes_transfered);
-
   void do_read_body();
-  void handle_read_body(const std::error_code ec, size_t bytes_transfered);
-
   void do_write_header();
-  void handle_write_header(const std::error_code& ec, size_t bytes_transferred);
-
   void do_write_body();
-  void handle_write_body(const std::error_code& ec, size_t bytes_transferred);
 
   // dumping answer from server -- REPLACE SOON
   void dump_read();

@@ -23,18 +23,16 @@ void ChatRoom::join(participant_ptr participant) {
 }
 
 void ChatRoom::leave(participant_ptr participant) {
-  LOG_DEBUG("chat::room::leave");
   participants_.erase(participant);
   participant->toLobby();
 };
 
 void ChatRoom::onMessageReceived(participant_ptr sender, chat_message& msg) {
-  LOG_DEBUG("chat::room::onMessageReceived");
   command_handler_->process(msg, sender, this);
 }
 
 void ChatRoom::deliverAll(const server_message& answer) {
-  std::cout << "Delivering all: " << std::endl;
+  // std::cout << "Delivering all: " << std::endl;
   recent_msgs_.push_back(answer);
   while (recent_msgs_.size() > max_recent_msgs) {
     recent_msgs_.pop_front();
@@ -65,12 +63,11 @@ void Lobby::leave(participant_ptr participant) {
 }
 
 void Lobby::onMessageReceived(participant_ptr sender, chat_message& msg) {
-  LOG_DEBUG("Lobby::onMessageReceived");
   command_handler_->process(msg, sender, this);
 }
 
 ServerResponceType Lobby::createRoom(const std::string& room_id, participant_ptr creator) {
-  std::cout << "Lobby::CreateRoom: " << room_id << std::endl;
+  // std::cout << "Lobby::CreateRoom: " << room_id << std::endl;
   if (room_id.empty()) {
     return ServerResponceType::INCORRECT_BODY;
   }
@@ -84,7 +81,7 @@ ServerResponceType Lobby::createRoom(const std::string& room_id, participant_ptr
 }
 
 ServerResponceType Lobby::deleteRoom(const std::string& room_id, participant_ptr deleter) {
-  std::cout << "Lobby::DeleteRoom: " << room_id << std::endl;
+  // std::cout << "Lobby::DeleteRoom: " << room_id << std::endl;
   if (room_id.empty()) {
     return ServerResponceType::INCORRECT_BODY;
   }
@@ -109,7 +106,7 @@ ServerResponceType Lobby::deleteRoom(const std::string& room_id, participant_ptr
 }
 
 ServerResponceType Lobby::moveParticipantToRoom(const std::string room_id, participant_ptr joiner) const {
-  std::cout << "Lobby::moveParticipantToRoom: " << room_id << std::endl;
+  // std::cout << "Lobby::moveParticipantToRoom: " << room_id << std::endl;
     if (room_id.empty()) {
       return ServerResponceType::INCORRECT_BODY;
     }
@@ -123,7 +120,7 @@ ServerResponceType Lobby::moveParticipantToRoom(const std::string room_id, parti
 }
 
 std::vector<std::string> Lobby::listRooms() const {
-  std::cout << "Lobby::listRooms" << std::endl;
+  // std::cout << "Lobby::listRooms" << std::endl;
   std::vector<std::string> answer;
   std::for_each(rooms_.begin(), rooms_.end(), [&answer](const auto& item) {
     answer.push_back(item.first);

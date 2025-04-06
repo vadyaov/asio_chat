@@ -1,14 +1,13 @@
 #include "session.hpp"
 #include <system_error>
+#include <iostream>
 
 void Session::start() {
-  LOG_DEBUG("Session::start");
   lobby_->join(shared_from_this());
   do_read_header();
 }
 
 void Session::deliver(const server_message &msg) {
-  LOG_DEBUG("Session::deliver");
   bool write_in_progress = !write_msgs_.empty();
   write_msgs_.push_back(msg);
   if (!write_in_progress) {
@@ -17,7 +16,7 @@ void Session::deliver(const server_message &msg) {
 }
 
 void Session::toRoom(IRoom *new_room) {
-  std::cout << "Session::toRoom" << std::endl;
+  // std::cout << "Session::toRoom" << std::endl;
   current_room_ = new_room;
   current_room_->join(shared_from_this());
 }
@@ -25,7 +24,7 @@ void Session::toRoom(IRoom *new_room) {
 void Session::toLobby() { current_room_ = nullptr; }
 
 void Session::disconnect() {
-  std::cout << "Session::disconnect" << std::endl;
+  // std::cout << "Session::disconnect" << std::endl;
   // asio::error_code ec;
   // socket_.shutdown(asio::ip::tcp::socket::shutdown_both, ec);
   // socket_.close(ec);
@@ -35,23 +34,22 @@ Session::Session(asio::io_context &io, IRoom *room)
     : socket_(io), lobby_(room), current_room_(nullptr) {}
 
 void Session::do_read_header() {
-  std::cout << "Session::do_read_header: " << std::endl;
-  std::cout << read_message_ << std::endl;
+  // std::cout << "Session::do_read_header: " << std::endl;
+  // std::cout << read_message_ << std::endl;
   asio::async_read(
       socket_, asio::buffer(&read_message_.header, sizeof(chat_header)),
       [this](const std::error_code &ec, size_t /* bytes_transferred */) {
         if (!ec) {
           do_read_body();
         } else {
-          LOG_DEBUG(ec.message());
           std::cout << "Error read header" << std::endl;
         }
       });
 }
 
 void Session::do_read_body() {
-  std::cout << "Session::do_read_body:" << std::endl;
-  std::cout << read_message_ << std::endl;
+  // std::cout << "Session::do_read_body:" << std::endl;
+  // std::cout << read_message_ << std::endl;
   read_message_.body.clear();
   read_message_.body.resize(read_message_.header.size);
   asio::async_read(
@@ -59,7 +57,6 @@ void Session::do_read_body() {
       asio::buffer(read_message_.body.data(), read_message_.header.size),
       [this](const std::error_code &ec, size_t /* bytes_transferred */) {
         if (!ec) {
-          LOG_DEBUG(read_message_);
           read_message_ = parser_.parse(read_message_);
 
           if (current_room_)
@@ -69,32 +66,30 @@ void Session::do_read_body() {
 
           do_read_header();
         } else {
-          LOG_DEBUG(ec.message());
           std::cout << "Error read body" << std::endl;
         }
       });
 }
 
 void Session::do_write_header() {
-  std::cout << "Session::do_write_header: " << std::endl;
+  // std::cout << "Session::do_write_header: " << std::endl;
   auto &front_message = write_msgs_.front();
-  std::cout << front_message << std::endl;
+  // std::cout << front_message << std::endl;
   asio::async_write(
       socket_, asio::buffer(&front_message.header, sizeof(server_header)),
       [this](const std::error_code &ec, size_t /* bytes_transferred */) {
         if (!ec) {
           do_write_body();
         } else {
-          LOG_DEBUG(ec.message());
           std::cout << "Error write header" << std::endl;
         }
       });
 }
 
 void Session::do_write_body() {
-  std::cout << "Session::do_write_body: " << std::endl;
+  // std::cout << "Session::do_write_body: " << std::endl;
   auto &front_message = write_msgs_.front();
-  std::cout << "Front Message: " << front_message << std::endl;
+  // std::cout << "Front Message: " << front_message << std::endl;
   asio::async_write(
       socket_,
       asio::buffer(front_message.body.data(), front_message.header.size),
@@ -105,7 +100,6 @@ void Session::do_write_body() {
             do_write_header();
           }
         } else {
-          LOG_DEBUG(ec.message());
           // current_room_->leave(shared_from_this());
           std::cout << "Error write body" << std::endl;
         }
