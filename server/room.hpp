@@ -21,6 +21,10 @@ public:
   virtual void leave(participant_ptr participant) = 0;
   virtual void onMessageReceived(participant_ptr sender, chat_message& msg) = 0;
 
+  const std::set<participant_ptr>& getParticipants() const noexcept {
+    return participants_;
+  }
+
 protected:
   std::string name_;
   std::set<participant_ptr> participants_;

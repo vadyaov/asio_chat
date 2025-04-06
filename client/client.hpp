@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <deque>
 
-#include "../common.hpp"
+#include "../message_parser.hpp"
 
 using asio::ip::tcp;
 
@@ -38,4 +38,6 @@ private:
   tcp::socket socket_;
   server_message read_message_;
   std::deque<chat_message> write_msgs_;
+
+  MessageParser<server_message, ServerMessageParser<server_message>> parser_;
 };

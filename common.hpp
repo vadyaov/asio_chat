@@ -15,21 +15,21 @@ static const char* port = "5555";
 // Message from client to server
 enum class ChatMessageType : uint32_t
 {
-  TEXT,   // need body (rooms only)
+  TEXT = 0,
   LOGIN,  // NOT IMPLEMENTED YET
   LOGOUT, // NOT IMPLEMENTED YET
-  CREATE, // NOT IMPLEMENTED YET
-  DELETE, // NOT IMPLEMENTED YET
-  JOIN,   // 
-  LIST,   // no need body (lobby only)
-  ROOM,   // no need body (rooms only)
-  QUIT,   // no need body (rooms and lobby)
+  CREATE,
+  DELETE,
+  JOIN,
+  LIST,
+  ROOM,
+  QUIT,
   UNKNOWN
 };
 
 enum class ServerResponceType : uint32_t
 {
-  OK,
+  OK = 0,
   INTERNAL_ERROR,
   UNKNOWN_REQUEST,
   INCORRECT_BODY,
@@ -39,8 +39,8 @@ enum class ServerResponceType : uint32_t
   FORBIDDEN,
 };
 
-using chat_header = message_header<ChatMessageType>;
+using chat_header = header<ChatMessageType>;
 using chat_message = message<ChatMessageType>;
 
-using server_header = message_header<ServerResponceType>;
+using server_header = header<ServerResponceType>;
 using server_message = message<ServerResponceType>;

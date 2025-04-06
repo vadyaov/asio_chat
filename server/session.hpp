@@ -2,6 +2,7 @@
 
 #include <asio.hpp>
 
+#include "../message_parser.hpp"
 #include "participant.hpp"
 #include "room.hpp"
 
@@ -37,4 +38,6 @@ private:
   
   chat_message read_message_;
   std::deque<server_message> write_msgs_;
+
+  MessageParser<chat_message, ClientMessageParser<chat_message>> parser_;
 };

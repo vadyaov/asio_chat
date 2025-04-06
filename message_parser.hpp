@@ -1,7 +1,8 @@
 #pragma once
 
-#include "../common.hpp"
+#include "common.hpp"
 
+#include <algorithm>
 #include <iostream>
 
 // ----------------------Utils---------------------- //
@@ -83,15 +84,29 @@ static std::string GetStringFromType(ChatMessageType type) {
   return str;
 }
 
-class ClientMessageParser {
+template<typename Message, typename Derived>
+class MessageParser {
 public:
-  static void parse(chat_message& msg) {
-    std::cout << "Type = " << GetStringFromType(msg.header.id) << std::endl;
+  Message parse(const Message& src) {
+    // call to derived class imlementation
+    return static_cast<Derived*>(this)->parseImpl(src);
+  }
+protected:
+  Message parseImpl(const Message& src) {
+    return Message{}; // default dummy
+  }
+};
+
+template<typename Message>
+class ClientMessageParser : public MessageParser<Message, ClientMessageParser<Message>> {
+public:
+  Message parseImpl(const Message& src) {
+    std::cout << "ClientMessageParser::parse" << std::endl;
+    Message result;
 
     std::string content;
-    msg.ExtractString(content);
+    if (src >> content; content.empty()) return result;
 
-    if (content.empty()) return;
 
     /*
         /login <username> <password>  -- login to server
@@ -103,16 +118,24 @@ public:
         /room                         -- current room
         /quit                         -- disconnect from server
     */
+    std::cout << "Type: ";
 
     if (content[0] != '/') {
-      msg.header.id = ChatMessageType::TEXT;
-      msg.AppendString(content);
-      return;
+      result.header.id = ChatMessageType::TEXT;
+      result.header.size = src.header.size;
+      result.body = src.body;
+      std::cout << GetStringFromType(result.header.id) << std::endl;
+      return result;
     }
 
     // content starts with '/'
     std::vector<std::string> tokens = Split(content.substr(1), " ");
-    msg.header.id = GetTypeFromString(tokens[0]);
+    result.header.id = GetTypeFromString(tokens[0]);
+
+    std::for_each(tokens.begin(), tokens.end(), [](const std::string& token) {
+      std::cout << token << " ";
+    });
+    std::cout << std::endl;
 
     /*
       Here is such logic when it doesnt matter what comes after the second
@@ -127,11 +150,29 @@ public:
     */
 
     std::string body = tokens.size() > 1 ? tokens[1] : "";
-    if (msg.header.id == ChatMessageType::LOGIN ||
-        msg.header.id == ChatMessageType::CREATE ||
-        msg.header.id == ChatMessageType::DELETE ||
-        msg.header.id == ChatMessageType::JOIN) {
-      msg.AppendString(body);
+    if (result.header.id == ChatMessageType::LOGIN ||
+        result.header.id == ChatMessageType::CREATE ||
+        result.header.id == ChatMessageType::DELETE ||
+        result.header.id == ChatMessageType::JOIN) {
+      // clear all except first token
+      result << body;
     }
+    std::cout << GetStringFromType(result.header.id) << std::endl;
+    return result;
+  }
+};
+
+template<typename Message>
+class ServerMessageParser : public MessageParser<Message, ServerMessageParser<Message>> {
+public:
+  Message parseImpl(const Message& src) {
+    std::cout << "ServerMessageParser::parse" << std::endl;
+
+    Message result;
+    result.header.id = ServerResponceType::OK;
+    result.header.size = src.header.size;
+    result.body = src.body;
+
+    return result;
   }
 };

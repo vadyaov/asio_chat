@@ -101,6 +101,9 @@ ServerResponceType Lobby::deleteRoom(const std::string& room_id, participant_ptr
   // TODO:
   // participants_in_room must be moved to lobby somehow when deleting room
   // if they are not in any other room
+  for (auto& participant : rooms_[room_id]->getParticipants()) {
+    participant->toLobby();
+  }
   rooms_.erase(it);
   return ServerResponceType::OK;
 }

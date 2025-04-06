@@ -1,5 +1,6 @@
 #include "command.h"
 #include "room.hpp"
+#include <algorithm>
 #include <iostream>
 
 void RoomTextCommand::execute(chat_message& message, participant_ptr sender, IRoom* context) {
@@ -30,7 +31,7 @@ void NotImplementedCommand::execute(chat_message& message, participant_ptr sende
   std::cout << "Executing NotImplementedCommand:" << std::endl;
   server_message answer;
   answer.header.id = ServerResponceType::UNKNOWN_REQUEST;
-  answer.AppendString("Not implemented yet.");
+  answer << "Not implemented yet.";
   sender->deliver(answer);
 }
 
@@ -45,7 +46,7 @@ void GetNameCommand::execute(chat_message& message, participant_ptr sender, IRoo
   std::cout << "Executing GetNameCommand:" << std::endl;
   server_message answer;
   answer.header.id = ServerResponceType::OK;
-  answer.AppendString(context->name());
+  answer << context->name();
   sender->deliver(answer);
 }
 
@@ -59,24 +60,22 @@ void QuitCommand::execute(chat_message& message, participant_ptr sender, IRoom* 
 void UnknownCommand::execute(chat_message& message, participant_ptr sender, IRoom* context) {
   server_message answer;
   answer.header.id = ServerResponceType::UNKNOWN_REQUEST;
-  answer.AppendString("Unknown request.");
+  answer << "Unknown request.";
   sender->deliver(answer);
 }
 
 void CreateRoomCommand::execute(chat_message& message, participant_ptr sender, IRoom* context) {
   std::cout << "Executing CreateRoomCommand:" << std::endl;
-  std::cout << "Offset = " << message.offset << "; " << message << std::endl;
-  // message.offset = 0;
   server_message answer;
   if (Lobby* lobby = dynamic_cast<Lobby*>(context); lobby) {
     std::string room_id;
-    message.ExtractString(room_id);
+    message >> room_id;
     answer.header.id = lobby->createRoom(room_id, sender);
     if (answer.header.id == ServerResponceType::OK)
-      answer.AppendString(room_id + " created.");
+      answer << room_id << " created.";
   } else {
     answer.header.id = ServerResponceType::INTERNAL_ERROR;
-    answer.AppendString("dynamic_cast error");
+    answer << "dynamic_cast error";
   }
   sender->deliver(answer);
 }
@@ -86,13 +85,13 @@ void DeleteRoomCommand::execute(chat_message& message, participant_ptr sender, I
   server_message answer;
   if (Lobby* lobby = dynamic_cast<Lobby*>(context); lobby) {
     std::string room_id;
-    message.ExtractString(room_id);
+    message >> room_id;
     answer.header.id = lobby->deleteRoom(room_id, sender);
     if (answer.header.id == ServerResponceType::OK)
-      answer.AppendString(room_id + " created.");
+      answer << room_id + " deleted.";
   } else {
     answer.header.id = ServerResponceType::INTERNAL_ERROR;
-    answer.AppendString("dynamic_cast error");
+    answer << "dynamic_cast error";
   }
   sender->deliver(answer);
 }
@@ -102,13 +101,13 @@ void JoinRoomCommand::execute(chat_message& message, participant_ptr sender, IRo
   server_message answer;
   if (Lobby* lobby = dynamic_cast<Lobby*>(context); lobby) {
     std::string room_id;
-    message.ExtractString(room_id);
+    message >> room_id;
     answer.header.id = lobby->moveParticipantToRoom(room_id, sender);
     if (answer.header.id == ServerResponceType::OK)
-      answer.AppendString("joined room " + room_id);
+      answer << "joined to: " + room_id;
   } else {
     answer.header.id = ServerResponceType::INTERNAL_ERROR;
-    answer.AppendString("dynamic_cast error");
+    answer << "dynamic_cast error";
   }
   sender->deliver(answer);
 }
@@ -116,14 +115,24 @@ void JoinRoomCommand::execute(chat_message& message, participant_ptr sender, IRo
 void ListRoomCommand::execute(chat_message& message, participant_ptr sender, IRoom* context) {
   std::cout << "Executing ListRoomCommand:" << std::endl;
   server_message answer;
-  if (Lobby* lobby = dynamic_cast<Lobby*>(context); lobby) { 
+  std::cout << "Server answer: " << answer << std::endl;
+  if (Lobby* lobby = dynamic_cast<Lobby*>(context); lobby) {
     answer.header.id = ServerResponceType::OK;
-    for (auto& room : lobby->listRooms())
-      answer.AppendString(room);
+    std::string all_rooms_string;
+    all_rooms_string.push_back('[');
+    if (auto rooms = lobby->listRooms(); !rooms.empty()) {
+      std::for_each_n(rooms.begin(), rooms.size() - 1,  [&all_rooms_string](const std::string& room) {
+        all_rooms_string.append(room + ", ");
+      });
+      all_rooms_string.append(rooms.back());
+    }
+    all_rooms_string.push_back(']');
+    answer << all_rooms_string;
   } else {
     answer.header.id = ServerResponceType::INTERNAL_ERROR;
-    answer.AppendString("dynamic_cast error");
+    answer << "dynamic_cast error";
   }
+  std::cout << "Server answer: " << answer << std::endl;
   sender->deliver(answer);
 }
 
