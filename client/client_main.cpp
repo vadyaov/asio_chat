@@ -21,7 +21,6 @@ int main(int argc, char** argv) {
     
     for (std::string buffer; std::getline(std::cin, buffer); ) {
       chat_message message;
-      // message.header.id = ChatMessageType::UNKNOWN;
       message << buffer;
       client.write(message);
     }

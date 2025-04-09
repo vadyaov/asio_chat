@@ -19,11 +19,13 @@ set(SERVER_SOURCES
     server/server.cpp
     server/command.cpp
     server/server_main.cpp
+    message_parser.hpp
 )
 
 set(CLIENT_SOURCES
     client/client.cpp
     client/client_main.cpp
+    message_parser.hpp
 )
 
 add_executable(server ${SERVER_SOURCES})

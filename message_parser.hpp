@@ -1,6 +1,8 @@
 #pragma once
 
 #include "message.hpp"
+#include <iostream>
+#include <ostream>
 
 template<typename Message, typename Derived>
 class MessageParser {
@@ -61,27 +63,8 @@ public:
       -- list rooms with limit
     */
 
-    std::string body = tokens.size() > 1 && result.header.id != ChatMessageType::UNKNOWN ? tokens[1] : tokens[0];
+    std::string body = tokens.size() > 1 && result.header.id != ChatMessageType::UNKNOWN ? tokens[1] : "";
     result << body;
-    return result;
-  }
-};
-
-template<typename Message>
-class ServerMessageParser : public MessageParser<Message, ServerMessageParser<Message>> {
-public:
-  Message parseImpl(const Message& src) {
-    // std::cout << "ServerMessageParser::parse" << std::endl;
-
-    std::string dataFromServer;
-    src >> dataFromServer;
-
-    Message result;
-    result.header.id = src.header.id;
-    if (result.header.id != ServerResponceType::OK) {
-      result << "Error: " << GetStringFromType(result.header.id) << ": ";
-    }
-    result << dataFromServer;
     return result;
   }
 };

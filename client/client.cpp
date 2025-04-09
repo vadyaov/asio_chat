@@ -51,14 +51,7 @@ void chat_client::do_read_body() {
       asio::buffer(read_message_.body.data(), read_message_.header.size),
       [this](const std::error_code ec, size_t /*bytes_transfered*/) {
         if (!ec) {
-          // here can be some connection between be and fe (if i'll do fe whenever)
-          // so here we should give a client the responce depends of respon's type
-          // read_message is a server responce
-          // for example
-          // request from client: /delete room1
-          // answer from server: read_message_{header.id = NOT_FOUND, header.size = 5, body = "room1"}
-          // client will see(smthg like this): error: not found: room1 
-          dump_read();
+          std::cout << read_message_ << std::endl;
           do_read_header();
         } else {
           socket_.close();
@@ -94,10 +87,4 @@ void chat_client::do_write_body() {
           socket_.close();
         }
       });
-}
-
-// dumping answer from server
-void chat_client::dump_read() {
-  auto serverAnswer = parser_.parse(read_message_);
-  std::cout << serverAnswer << std::endl;
 }
