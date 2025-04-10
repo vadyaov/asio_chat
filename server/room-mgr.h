@@ -2,6 +2,7 @@
 
 #include "participant.hpp"
 #include <memory>
+#include <mutex>
 #include <unordered_map>
 
 class IParticipant;
@@ -20,6 +21,7 @@ public:
   Room* lobby();
 
 private:
+  mutable std::mutex mutex_;
   std::unique_ptr<Room> lobby_;
   std::unordered_map<std::string, std::unique_ptr<Room>> rooms_;
 };
