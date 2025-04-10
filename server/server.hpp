@@ -1,6 +1,8 @@
 #pragma once
 
 #include <asio.hpp>
+#include <memory>
+#include "room-mgr.h"
 #include "session.hpp"
 
 class Session;
@@ -16,5 +18,5 @@ private:
   asio::ip::tcp::acceptor acceptor_;
   asio::io_context& io_context_;
 
-  Lobby lobby_;
+  std::unique_ptr<RoomMgr> room_mgr_;
 };

@@ -11,6 +11,7 @@ enum class ChatMessageType : uint32_t
   TEXT = 0,
   LOGIN,  // NOT IMPLEMENTED YET
   LOGOUT, // NOT IMPLEMENTED YET
+  REGISTER,
   CREATE,
   DELETE,
   JOIN,
@@ -30,6 +31,9 @@ enum class ServerResponceType : uint32_t
   ALREADY_EXISTS,
   NOT_FOUND,
   FORBIDDEN,
+  INCORRECT_LOGIN,
+  INCORRECT_PASSWORD,
+  INVALID_CREDENTIALS,
 };
 
 
@@ -126,6 +130,8 @@ inline ChatMessageType GetTypeFromString(const std::string &str) {
     type = ChatMessageType::LOGIN;
   } else if (str == "logout") {
     type = ChatMessageType::LOGOUT;
+  } else if (str == "register") {
+    type = ChatMessageType::REGISTER;
   } else if (str == "create") {
     type = ChatMessageType::CREATE;
   } else if (str == "delete") {
@@ -150,6 +156,8 @@ inline std::string GetStringFromType(ChatMessageType type) {
     str = "LOGIN";
   } else if (type == ChatMessageType::LOGOUT) {
     str = "LOGOUT";
+  } else if (type == ChatMessageType::REGISTER) {
+    str = "REGISTER";
   } else if (type == ChatMessageType::CREATE) {
     str = "CREATE";
   } else if (type == ChatMessageType::DELETE) {

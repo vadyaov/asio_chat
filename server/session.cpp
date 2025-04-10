@@ -1,9 +1,10 @@
 #include "session.hpp"
+#include "room-mgr.h"
 #include <system_error>
 #include <iostream>
 
 void Session::start() {
-  lobby_->join(shared_from_this());
+  setRoom(room_mgr_->lobby());
   do_read_header();
 }
 
@@ -15,23 +16,10 @@ void Session::deliver(const server_message &msg) {
   }
 }
 
-void Session::toRoom(IRoom *new_room) {
-  // std::cout << "Session::toRoom" << std::endl;
-  current_room_ = new_room;
-  current_room_->join(shared_from_this());
+Session::Session(asio::io_context &io, RoomMgr* room_mgr)
+    : socket_(io), room_mgr_(room_mgr) {
+  current_room_ = room_mgr_->lobby();
 }
-
-void Session::toLobby() { current_room_ = nullptr; }
-
-void Session::disconnect() {
-  // std::cout << "Session::disconnect" << std::endl;
-  // asio::error_code ec;
-  // socket_.shutdown(asio::ip::tcp::socket::shutdown_both, ec);
-  // socket_.close(ec);
-}
-
-Session::Session(asio::io_context &io, IRoom *room)
-    : socket_(io), lobby_(room), current_room_(nullptr) {}
 
 void Session::do_read_header() {
   // std::cout << "Session::do_read_header: " << std::endl;
@@ -59,10 +47,7 @@ void Session::do_read_body() {
         if (!ec) {
           read_message_ = parser_.parse(read_message_);
 
-          if (current_room_)
-            current_room_->onMessageReceived(shared_from_this(), read_message_);
-          else
-            lobby_->onMessageReceived(shared_from_this(), read_message_);
+          current_room_->onMessageReceived(shared_from_this(), read_message_);
 
           do_read_header();
         } else {

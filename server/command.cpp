@@ -1,117 +1,97 @@
 #include "command.h"
 #include "room.hpp"
+#include "room-mgr.h"
+
 #include <algorithm>
 #include <iostream>
 
-void RoomTextCommand::execute(chat_message& message, participant_ptr sender, IRoom* context) {
-    // std::cout << "Executing RoomTextCommand:" << std::endl;
-
-    server_message answer(message);
-    if (ChatRoom* chat_room = dynamic_cast<ChatRoom*>(context); chat_room) {
-      chat_room->deliverAll(std::move(answer));
-    }
+void RoomTextCommand::execute(chat_message& message, participant_ptr sender) {
+  // std::cout << "Executing RoomTextCommand:" << std::endl;
+  server_message answer(message);
+  if (ChatRoom* chat_room = dynamic_cast<ChatRoom*>(sender->room()); chat_room) {
+    chat_room->deliverAll(std::move(answer));
+  }
 }
 
-void LobbyTextCommand::execute(chat_message& message, participant_ptr sender, IRoom* /*context*/) {
+void LobbyTextCommand::execute(chat_message& message, participant_ptr sender) {
   // std::cout << "Executing LobbyTextCommand:" << std::endl;
-
   server_message answer(message);
   sender->deliver(answer);
 }
 
-void NotImplementedCommand::execute(chat_message& message, participant_ptr sender, IRoom* /*context*/) {
+void NotImplementedCommand::execute(chat_message& message, participant_ptr sender) {
   // std::cout << "Executing NotImplementedCommand:" << std::endl;
-
   server_message answer(ServerResponceType::UNKNOWN_REQUEST, message);
   sender->deliver(answer);
 }
 
-void InvalidContextCommand::execute(chat_message& message, participant_ptr sender, IRoom* /*context*/) {
+void InvalidContextCommand::execute(chat_message& message, participant_ptr sender) {
   // std::cout << "Executing InvalidContextCommand:" << std::endl;
 
   server_message answer(ServerResponceType::INVALID_CONTEXT, message);
   sender->deliver(answer);
 }
 
-void GetNameCommand::execute(chat_message& message, participant_ptr sender, IRoom* context) {
+void GetNameCommand::execute(chat_message& message, participant_ptr sender) {
   // std::cout << "Executing GetNameCommand:" << std::endl;
-
   server_message answer;
-  answer << context->name();
-
+  answer << sender->room()->name();
   sender->deliver(answer);
 }
 
-void QuitCommand::execute(chat_message& message, participant_ptr sender, IRoom* context) {
+void QuitCommand::execute(chat_message& message, participant_ptr sender) {
   // std::cout << "Executing QuitCommand:" << std::endl;
   server_message answer;
-  context->leave(sender);
-  answer << "quit: " << context->name();
+  sender->setRoom(sender->room_mgr()->lobby());
   sender->deliver(answer);
 }
 
-void UnknownCommand::execute(chat_message& message, participant_ptr sender, IRoom* context) {
+void UnknownCommand::execute(chat_message& message, participant_ptr sender) {
   server_message answer(ServerResponceType::UNKNOWN_REQUEST, message);
   sender->deliver(answer);
 }
 
-void CreateRoomCommand::execute(chat_message& message, participant_ptr sender, IRoom* context) {
+void CreateRoomCommand::execute(chat_message& message, participant_ptr sender) {
   // std::cout << "Executing CreateRoomCommand:" << std::endl;
   server_message answer;
-  if (Lobby* lobby = dynamic_cast<Lobby*>(context); lobby) {
-    std::string room_id;
-    message >> room_id;
-    answer.header.id = lobby->createRoom(room_id, sender);
-    if (answer.header.id != ServerResponceType::OK) {
-      answer << room_id;
-    }
-  } else {
-    answer.header.id = ServerResponceType::INTERNAL_ERROR;
-    answer << "dynamic_cast";
+  std::string room_id;
+  message >> room_id;
+  answer.header.id = sender->room_mgr()->createRoom(room_id, sender);
+  if (answer.header.id != ServerResponceType::OK) {
+    answer << room_id;
   }
   sender->deliver(answer);
 }
 
-void DeleteRoomCommand::execute(chat_message& message, participant_ptr sender, IRoom* context) {
+void DeleteRoomCommand::execute(chat_message& message, participant_ptr sender) {
   // std::cout << "Executing DeleteRoomCommand:" << std::endl;
   server_message answer;
-  if (Lobby* lobby = dynamic_cast<Lobby*>(context); lobby) {
-    std::string room_id;
-    message >> room_id;
-    answer.header.id = lobby->deleteRoom(room_id, sender);
-    if (answer.header.id != ServerResponceType::OK)
-      answer << room_id;
-  } else {
-    answer.header.id = ServerResponceType::INTERNAL_ERROR;
-    answer << "dynamic_cast";
-  }
+  std::string room_id;
+  message >> room_id;
+  answer.header.id = sender->room_mgr()->deleteRoom(room_id, sender);
+  if (answer.header.id != ServerResponceType::OK)
+    answer << room_id;
   sender->deliver(answer);
 }
 
-void JoinRoomCommand::execute(chat_message& message, participant_ptr sender, IRoom* context) {
+void JoinRoomCommand::execute(chat_message& message, participant_ptr sender) {
   // std::cout << "Executing JoinRoomCommand:" << std::endl;
   server_message answer;
-  if (Lobby* lobby = dynamic_cast<Lobby*>(context); lobby) {
-    std::string room_id;
-    message >> room_id;
-    answer.header.id = lobby->moveParticipantToRoom(room_id, sender);
-    if (answer.header.id != ServerResponceType::OK) {
-      answer << room_id;
-    }
-  } else {
-    answer.header.id = ServerResponceType::INTERNAL_ERROR;
-    answer << "dynamic_cast";
+  std::string room_id;
+  message >> room_id;
+  answer.header.id = sender->room_mgr()->moveParticipantToRoom(sender, room_id);
+  if (answer.header.id != ServerResponceType::OK) {
+    answer << room_id;
   }
   sender->deliver(answer);
 }
 
-void ListRoomCommand::execute(chat_message& message, participant_ptr sender, IRoom* context) {
+void ListRoomCommand::execute(chat_message& message, participant_ptr sender) {
   // std::cout << "Executing ListRoomCommand:" << std::endl;
   server_message answer;
-  if (Lobby* lobby = dynamic_cast<Lobby*>(context); lobby) {
     std::string all_rooms_string;
     all_rooms_string.push_back('[');
-    if (auto rooms = lobby->listRooms(); !rooms.empty()) {
+    if (auto rooms = sender->room_mgr()->listRooms(); !rooms.empty()) {
       std::for_each_n(rooms.begin(), rooms.size() - 1,  [&all_rooms_string](const std::string& room) {
         all_rooms_string.append(room + ", ");
       });
@@ -119,10 +99,6 @@ void ListRoomCommand::execute(chat_message& message, participant_ptr sender, IRo
     }
     all_rooms_string.push_back(']');
     answer << all_rooms_string;
-  } else {
-    answer.header.id = ServerResponceType::INTERNAL_ERROR;
-    answer << "dynamic_cast";
-  }
   sender->deliver(answer);
 }
 
@@ -195,9 +171,9 @@ void ICommandHandler::initHandlers() {
   handlers_[ChatMessageType::UNKNOWN] = command_factory_->createCommand(ChatMessageType::UNKNOWN);
 }
 
-void ICommandHandler::process(chat_message& message, participant_ptr sender, IRoom* context) {
+void ICommandHandler::process(chat_message& message, participant_ptr sender) {
   if (handlers_.count(message.header.id) == 0) {
     std::cout << "Something bad gonna happen" << std::endl;
   }
-  handlers_[message.header.id]->execute(message, sender, context);
+  handlers_[message.header.id]->execute(message, sender);
 }

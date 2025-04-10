@@ -15,6 +15,7 @@ include_directories(${PROJECT_SOURCE_DIR}/asio-1.30.2/include)
 
 set(SERVER_SOURCES
     server/room.cpp
+    server/room-mgr.cc
     server/session.cpp
     server/server.cpp
     server/command.cpp

@@ -46,25 +46,15 @@ public:
     std::vector<std::string> tokens = Split(content.substr(1), " ");
     Message result(GetTypeFromString(tokens[0]));
 
-    // std::for_each(tokens.begin(), tokens.end(), [](const std::string& token) {
-    //   std::cout << token << " ";
-    // });
-    // std::cout << std::endl;
+    if (tokens.size() > 1) {
+      int i = 1;
+      while (i < tokens.size() - 1) {
+        result << tokens[i] << " ";
+        i++;
+      }
+      result << tokens[i];
+    }
 
-    /*
-      Here is such logic when it doesnt matter what comes after the second
-      token. For example: /login <room_id> <some_message> command does not
-      take <some_message> (if it exist) to the message body only <room_id> is
-      matter
-
-      Maybe change this logic in future: example
-      /login <room_id> <first_message to send> -- means login with some "hello
-      message" /logout <room_id> <goodbye_message>      -- same /list <limit>
-      -- list rooms with limit
-    */
-
-    std::string body = tokens.size() > 1 && result.header.id != ChatMessageType::UNKNOWN ? tokens[1] : "";
-    result << body;
     return result;
   }
 };

@@ -1,74 +1,73 @@
 #pragma once
 
-#include "../common.hpp"
 #include "participant.hpp"
 
 #include <memory>
 #include <unordered_map>
 
-class IRoom;
+class Room;
 
 class ICommand {
 public:
   virtual ~ICommand() {}
 
   // first argument can be replaced with just std::string (body)
-  virtual void execute(chat_message& message, participant_ptr sender, IRoom* context) = 0;
+  virtual void execute(chat_message& message, participant_ptr sender) = 0;
 };
 
 class RoomTextCommand : public ICommand {
 public:
-  void execute(chat_message& message, participant_ptr sender, IRoom* context) override;
+  void execute(chat_message& message, participant_ptr sender) override;
 };
 
 class LobbyTextCommand : public ICommand {
 public:
-  void execute(chat_message& message, participant_ptr sender, IRoom* context) override;
+  void execute(chat_message& message, participant_ptr sender) override;
 };
 
 class NotImplementedCommand : public ICommand {
 public:
-  void execute(chat_message& message, participant_ptr sender, IRoom* context) override;
+  void execute(chat_message& message, participant_ptr sender) override;
 };
 
 class InvalidContextCommand : public ICommand {
 public:
-  void execute(chat_message& message, participant_ptr sender, IRoom* context) override;
+  void execute(chat_message& message, participant_ptr sender) override;
 };
 
 class GetNameCommand : public ICommand {
 public:
-  void execute(chat_message& message, participant_ptr sender, IRoom* context) override;
+  void execute(chat_message& message, participant_ptr sender) override;
 };
 
 class QuitCommand : public ICommand {
 public:
-  void execute(chat_message& message, participant_ptr sender, IRoom* context) override;
+  void execute(chat_message& message, participant_ptr sender) override;
 };
 
 class UnknownCommand : public ICommand {
 public:
-  void execute(chat_message& message, participant_ptr sender, IRoom* context) override;
+  void execute(chat_message& message, participant_ptr sender) override;
 };
 
 class CreateRoomCommand : public ICommand {
 public:
-  void execute(chat_message& message, participant_ptr sender, IRoom* context) override;
+  void execute(chat_message& message, participant_ptr sender) override;
 };
 
 class DeleteRoomCommand : public ICommand {
 public:
-  void execute(chat_message& message, participant_ptr sender, IRoom* context) override;
+  void execute(chat_message& message, participant_ptr sender) override;
 };
 
 class JoinRoomCommand : public ICommand {
 public:
-  void execute(chat_message& message, participant_ptr sender, IRoom* context) override;
+  void execute(chat_message& message, participant_ptr sender) override;
 };
 
 class ListRoomCommand : public ICommand {
 public:
-  void execute(chat_message& message, participant_ptr sender, IRoom* context) override;
+  void execute(chat_message& message, participant_ptr sender) override;
 };
 
 class ICommandFactory {
@@ -95,7 +94,7 @@ public:
 
   void initHandlers();
 
-  void process(chat_message& message, participant_ptr sender, IRoom* context);
+  void process(chat_message& message, participant_ptr sender);
 
 protected:
   std::unordered_map<ChatMessageType, std::unique_ptr<ICommand>> handlers_;

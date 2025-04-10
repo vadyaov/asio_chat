@@ -2,27 +2,26 @@
 
 #include <memory>
 #include <set>
-#include <map>
 #include <deque>
 
 #include "participant.hpp"
 
 class ICommandHandler;
 
-class IRoom {
+class Room {
 public:
-  virtual ~IRoom();
-  IRoom(const std::string& name);
+  virtual ~Room();
+  Room(const std::string& name);
 
   const std::string& name() const { return name_; }
 
   virtual void join(participant_ptr participant) = 0;
   virtual void leave(participant_ptr participant) = 0;
-  virtual void onMessageReceived(participant_ptr sender, chat_message& msg) = 0;
+  virtual bool isOwner(participant_ptr participant) = 0;
 
-  const std::set<participant_ptr>& getParticipants() const noexcept {
-    return participants_;
-  }
+
+  void onMessageReceived(participant_ptr sender, chat_message& msg);
+  const std::set<participant_ptr>& getParticipants() const noexcept;
 
 protected:
   std::string name_;
@@ -30,15 +29,16 @@ protected:
   std::unique_ptr<ICommandHandler> command_handler_;
 };
 
-class ChatRoom : public IRoom {
+// TODO: судя по всему все комнаты должны быть потокобезопасны
+// надо подумать, так ли это на самом деле?
+class ChatRoom : public Room {
 public:
   explicit ChatRoom(const std::string& name, participant_ptr creator);
 
   void join(participant_ptr participant) override;
   void leave(participant_ptr participant) override;
-  void onMessageReceived(participant_ptr sender, chat_message& msg) override;
 
-  bool isOwner(const participant_ptr& someone) { return someone == creator_; }
+  bool isOwner(participant_ptr someone) override { return someone.get() == creator_.get(); }
   void deliverAll(const server_message& answer);
   
 private:
@@ -47,20 +47,14 @@ private:
   std::deque<server_message> recent_msgs_;
 };
 
-class Lobby : public IRoom {
+// Должно ли лобби быть потокобезопасным или нет?
+// Если одновременно вызвать join из 2х и более потоков?
+// да, думаю все таки тут нужны мьютексы
+class Lobby : public Room {
 public:
   Lobby();
 
   void join(participant_ptr participant) override;
   void leave(participant_ptr participant) override;
-  void onMessageReceived(participant_ptr sender, chat_message& msg) override;
-
-  ServerResponceType createRoom(const std::string& room_id, participant_ptr creator);
-  ServerResponceType deleteRoom(const std::string& room_id, participant_ptr deleter);
-  ServerResponceType moveParticipantToRoom(const std::string room_id, participant_ptr joiner) const;
-
-  std::vector<std::string> listRooms() const;
-
-private:
-  std::map<std::string, std::unique_ptr<ChatRoom>> rooms_;
+  bool isOwner(participant_ptr someone) override { return false; }
 };
