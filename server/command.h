@@ -6,6 +6,7 @@
 #include <unordered_map>
 
 class Room;
+class RoomMgr;
 
 class ICommand {
 public:
@@ -37,12 +38,15 @@ public:
 
 class GetNameCommand : public ICommand {
 public:
-  void execute(chat_message& message, participant_ptr sender) override;
+  void execute(chat_message& message,  participant_ptr sender) override;
 };
 
 class QuitCommand : public ICommand {
 public:
+  QuitCommand(RoomMgr* room_mgr) : room_mgr_(room_mgr) {}
   void execute(chat_message& message, participant_ptr sender) override;
+private:
+  RoomMgr* room_mgr_;
 };
 
 class UnknownCommand : public ICommand {
@@ -52,37 +56,55 @@ public:
 
 class CreateRoomCommand : public ICommand {
 public:
+  CreateRoomCommand(RoomMgr* room_mgr) : room_mgr_(room_mgr) {}
   void execute(chat_message& message, participant_ptr sender) override;
+private:
+  RoomMgr* room_mgr_;
 };
 
 class DeleteRoomCommand : public ICommand {
 public:
+  DeleteRoomCommand(RoomMgr* room_mgr) : room_mgr_(room_mgr) {}
   void execute(chat_message& message, participant_ptr sender) override;
+private:
+  RoomMgr* room_mgr_;
 };
 
 class JoinRoomCommand : public ICommand {
 public:
+  JoinRoomCommand(RoomMgr* room_mgr) : room_mgr_(room_mgr) {}
   void execute(chat_message& message, participant_ptr sender) override;
+private:
+  RoomMgr* room_mgr_;
 };
 
 class ListRoomCommand : public ICommand {
 public:
+  ListRoomCommand(RoomMgr* room_mgr) : room_mgr_(room_mgr) {}
   void execute(chat_message& message, participant_ptr sender) override;
+private:
+  RoomMgr* room_mgr_;
 };
 
 class ICommandFactory {
 public:
   virtual ~ICommandFactory() {}
+  ICommandFactory(RoomMgr* room_mgr) : room_mgr_(room_mgr) {}
   virtual std::unique_ptr<ICommand> createCommand(ChatMessageType type) = 0;
+
+protected:
+  RoomMgr* room_mgr_;
 };
 
 class ChatRoomCommandFactory : public ICommandFactory {
 public:
+  using ICommandFactory::ICommandFactory;
   std::unique_ptr<ICommand> createCommand(ChatMessageType type) override;
 };
 
 class LobbyCommandFactory : public ICommandFactory {
 public:
+  using ICommandFactory::ICommandFactory;
   std::unique_ptr<ICommand> createCommand(ChatMessageType type) override;
 };
 
@@ -103,14 +125,14 @@ protected:
 
 class ChatRoomCommandHandler : public ICommandHandler {
 public:
-  ChatRoomCommandHandler() {
-    command_factory_ = std::make_unique<ChatRoomCommandFactory>();
+  ChatRoomCommandHandler(RoomMgr* room_mgr) {
+    command_factory_ = std::make_unique<ChatRoomCommandFactory>(room_mgr);
   }
 };
 
 class LobbyCommandHandler : public ICommandHandler {
 public:
-  LobbyCommandHandler() {
-    command_factory_ = std::make_unique<LobbyCommandFactory>();
+  LobbyCommandHandler(RoomMgr* room_mgr) {
+    command_factory_ = std::make_unique<LobbyCommandFactory>(room_mgr);
   }
 };

@@ -8,8 +8,8 @@
 void RoomTextCommand::execute(chat_message& message, participant_ptr sender) {
   // std::cout << "Executing RoomTextCommand:" << std::endl;
   server_message answer(message);
-  if (ChatRoom* chat_room = dynamic_cast<ChatRoom*>(sender->room()); chat_room) {
-    chat_room->deliverAll(std::move(answer));
+  if (ChatRoom* room = dynamic_cast<ChatRoom*>(sender->room()); room) {
+    room->deliverAll(answer);
   }
 }
 
@@ -35,6 +35,7 @@ void InvalidContextCommand::execute(chat_message& message, participant_ptr sende
 void GetNameCommand::execute(chat_message& message, participant_ptr sender) {
   // std::cout << "Executing GetNameCommand:" << std::endl;
   server_message answer;
+  auto room = sender->room();
   answer << sender->room()->name();
   sender->deliver(answer);
 }
@@ -42,7 +43,7 @@ void GetNameCommand::execute(chat_message& message, participant_ptr sender) {
 void QuitCommand::execute(chat_message& message, participant_ptr sender) {
   // std::cout << "Executing QuitCommand:" << std::endl;
   server_message answer;
-  sender->setRoom(sender->room_mgr()->lobby());
+  sender->set_room(room_mgr_->lobby());
   sender->deliver(answer);
 }
 
@@ -56,7 +57,7 @@ void CreateRoomCommand::execute(chat_message& message, participant_ptr sender) {
   server_message answer;
   std::string room_id;
   message >> room_id;
-  answer.header.id = sender->room_mgr()->createRoom(room_id, sender);
+  answer.header.id = room_mgr_->createRoom(room_id, sender);
   if (answer.header.id != ServerResponceType::OK) {
     answer << room_id;
   }
@@ -68,7 +69,7 @@ void DeleteRoomCommand::execute(chat_message& message, participant_ptr sender) {
   server_message answer;
   std::string room_id;
   message >> room_id;
-  answer.header.id = sender->room_mgr()->deleteRoom(room_id, sender);
+  answer.header.id = room_mgr_->deleteRoom(room_id, sender);
   if (answer.header.id != ServerResponceType::OK)
     answer << room_id;
   sender->deliver(answer);
@@ -79,7 +80,7 @@ void JoinRoomCommand::execute(chat_message& message, participant_ptr sender) {
   server_message answer;
   std::string room_id;
   message >> room_id;
-  answer.header.id = sender->room_mgr()->moveParticipantToRoom(sender, room_id);
+  answer.header.id = room_mgr_->moveParticipantToRoom(sender, room_id);
   if (answer.header.id != ServerResponceType::OK) {
     answer << room_id;
   }
@@ -89,16 +90,16 @@ void JoinRoomCommand::execute(chat_message& message, participant_ptr sender) {
 void ListRoomCommand::execute(chat_message& message, participant_ptr sender) {
   // std::cout << "Executing ListRoomCommand:" << std::endl;
   server_message answer;
-    std::string all_rooms_string;
-    all_rooms_string.push_back('[');
-    if (auto rooms = sender->room_mgr()->listRooms(); !rooms.empty()) {
-      std::for_each_n(rooms.begin(), rooms.size() - 1,  [&all_rooms_string](const std::string& room) {
-        all_rooms_string.append(room + ", ");
-      });
-      all_rooms_string.append(rooms.back());
-    }
-    all_rooms_string.push_back(']');
-    answer << all_rooms_string;
+  std::string all_rooms_string;
+  all_rooms_string.push_back('[');
+  if (auto rooms = room_mgr_->listRooms(); !rooms.empty()) {
+    std::for_each_n(rooms.begin(), rooms.size() - 1,  [&all_rooms_string](const std::string& room) {
+      all_rooms_string.append(room + ", ");
+    });
+    all_rooms_string.append(rooms.back());
+  }
+  all_rooms_string.push_back(']');
+  answer << all_rooms_string;
   sender->deliver(answer);
 }
 
@@ -122,7 +123,7 @@ std::unique_ptr<ICommand> ChatRoomCommandFactory::createCommand(ChatMessageType 
   } else if (type == ChatMessageType::ROOM) {
     command = std::make_unique<GetNameCommand>();
   } else if (type == ChatMessageType::QUIT) {
-    command = std::make_unique<QuitCommand>();
+    command = std::make_unique<QuitCommand>(room_mgr_);
   } else if (type == ChatMessageType::UNKNOWN) {
     command = std::make_unique<UnknownCommand>();
   }
@@ -140,17 +141,17 @@ std::unique_ptr<ICommand> LobbyCommandFactory::createCommand(ChatMessageType typ
   } else if (type == ChatMessageType::LOGOUT) {
     command = std::make_unique<NotImplementedCommand>();
   } else if (type == ChatMessageType::CREATE) {
-    command = std::make_unique<CreateRoomCommand>();
+    command = std::make_unique<CreateRoomCommand>(room_mgr_);
   } else if (type == ChatMessageType::DELETE) {
-    command = std::make_unique<DeleteRoomCommand>();
+    command = std::make_unique<DeleteRoomCommand>(room_mgr_);
   } else if (type == ChatMessageType::JOIN) {
-    command = std::make_unique<JoinRoomCommand>();
+    command = std::make_unique<JoinRoomCommand>(room_mgr_);
   } else if (type == ChatMessageType::LIST) {
-    command = std::make_unique<ListRoomCommand>();
+    command = std::make_unique<ListRoomCommand>(room_mgr_);
   } else if (type == ChatMessageType::ROOM) {
     command = std::make_unique<GetNameCommand>();
   } else if (type == ChatMessageType::QUIT) {
-    command = std::make_unique<QuitCommand>();
+    command = std::make_unique<QuitCommand>(room_mgr_);
   } else if (type == ChatMessageType::UNKNOWN) {
     command = std::make_unique<UnknownCommand>();
   }
@@ -172,6 +173,7 @@ void ICommandHandler::initHandlers() {
 }
 
 void ICommandHandler::process(chat_message& message, participant_ptr sender) {
+  // std::cout << "CommandHandler::process: " << std::endl;
   if (handlers_.count(message.header.id) == 0) {
     std::cout << "Something bad gonna happen" << std::endl;
   }

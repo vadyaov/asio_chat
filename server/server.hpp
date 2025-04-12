@@ -2,10 +2,12 @@
 
 #include <asio.hpp>
 #include <memory>
-#include "room-mgr.h"
+
 #include "session.hpp"
 
 class Session;
+class RoomMgr;
+class AuthManager;
 
 class Server {
 public:
@@ -19,4 +21,5 @@ private:
   asio::io_context& io_context_;
 
   std::unique_ptr<RoomMgr> room_mgr_;
+  std::unique_ptr<AuthManager> auth_mgr_;
 };

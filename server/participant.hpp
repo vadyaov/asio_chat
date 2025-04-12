@@ -5,17 +5,19 @@
 #include "../message.hpp"
 
 class Room;
-class RoomMgr;
 
-class IParticipant {
+class Participant {
 public:
-  virtual ~IParticipant() {}
+  virtual ~Participant() {}
   virtual void deliver(const server_message& msg) = 0;
 
-  virtual Room* room() = 0;
-  virtual void setRoom(Room* room) = 0;
+  Room* room() { return current_room_; }
+  const Room* room() const { return current_room_; }
 
-  virtual RoomMgr* room_mgr() = 0;
+  virtual void set_room(Room* room) = 0;
+
+protected:
+  Room* current_room_ = nullptr;
 };
 
-using participant_ptr = std::shared_ptr<IParticipant>;
+using participant_ptr = std::shared_ptr<Participant>;

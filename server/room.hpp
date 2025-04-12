@@ -4,6 +4,7 @@
 #include <set>
 #include <deque>
 
+#include "command.h"
 #include "participant.hpp"
 
 class ICommandHandler;
@@ -19,9 +20,13 @@ public:
   virtual void leave(participant_ptr participant) = 0;
   virtual bool isOwner(participant_ptr participant) = 0;
 
-
   void onMessageReceived(participant_ptr sender, chat_message& msg);
   const std::set<participant_ptr>& getParticipants() const noexcept;
+
+  void setCommandHandler(std::unique_ptr<ICommandHandler> handler) {
+    command_handler_ = std::move(handler);
+    command_handler_->initHandlers();
+  }
 
 protected:
   std::string name_;
@@ -52,7 +57,7 @@ private:
 // да, думаю все таки тут нужны мьютексы
 class Lobby : public Room {
 public:
-  Lobby();
+  explicit Lobby(const std::string& name);
 
   void join(participant_ptr participant) override;
   void leave(participant_ptr participant) override;

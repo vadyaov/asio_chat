@@ -5,9 +5,10 @@
 
 Room::~Room() = default;
 
-Room::Room(const std::string& name) : name_(name) {}
+Room::Room(const std::string& name): name_(name) {}
 
 void Room::onMessageReceived(participant_ptr sender, chat_message& msg) {
+  // std::cout << "Room::onMessageReceived" << std::endl;
   command_handler_->process(msg, sender);
 }
 
@@ -17,12 +18,11 @@ const std::set<participant_ptr>& Room::getParticipants() const noexcept {
 
 //---------------------------------------CHAT-ROOM-----------------------------------------//
 
-ChatRoom::ChatRoom(const std::string& name, participant_ptr creator) : Room(name), creator_(creator) {
-  command_handler_ = std::make_unique<ChatRoomCommandHandler>();
-  command_handler_->initHandlers();
-}
+ChatRoom::ChatRoom(const std::string& name, participant_ptr creator)
+    : Room(name), creator_(creator) {}
 
 void ChatRoom::join(participant_ptr participant) {
+  // std::cout << "ChatRoom::join: " << name() << std::endl;
   participants_.insert(participant);
   for (auto msg : recent_msgs_) {
     participant->deliver(msg);
@@ -30,6 +30,7 @@ void ChatRoom::join(participant_ptr participant) {
 }
 
 void ChatRoom::leave(participant_ptr participant) {
+  // std::cout << "ChatRoom::leave: " << name() << std::endl;
   participants_.erase(participant);
 };
 
@@ -47,15 +48,14 @@ void ChatRoom::deliverAll(const server_message& answer) {
 
 //--------------------------------------LOBBY-----------------------------------------//
 
-Lobby::Lobby() : Room("Lobby") {
-  command_handler_ = std::make_unique<LobbyCommandHandler>();
-  command_handler_->initHandlers();
-}
+Lobby::Lobby(const std::string& name) : Room(name) {}
 
 void Lobby::join(participant_ptr participant) {
+  // std::cout << "Lobby::join" << std::endl;
   participants_.insert(participant);
 }
 
 void Lobby::leave(participant_ptr participant) {
+  // std::cout << "Lobby::leave: " << std::endl;
   participants_.erase(participant);
 }

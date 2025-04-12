@@ -20,14 +20,14 @@ public:
   virtual ServerResponceType Authorize(participant_ptr user, const Credentials& credentials) const = 0;
 };
 
-// Need to make it thread safe!
 class SimpleAuthManager : public AuthManager {
 public:
-  virtual ServerResponceType Register(participant_ptr user, const Credentials& credentials) override {
+  ServerResponceType Register(participant_ptr user, const Credentials& credentials) override {
     if (credentials.login.empty() || credentials.password.empty()) {
       return ServerResponceType::INVALID_CREDENTIALS;
     }
 
+    std::lock_guard<std::mutex> lock(mutex_);
     if (users_.count(credentials.login)) {
       return ServerResponceType::ALREADY_EXISTS;
     }
@@ -37,11 +37,12 @@ public:
     return ServerResponceType::OK;
   }
 
-  virtual ServerResponceType Authorize(participant_ptr user, const Credentials& credentials) const override {
+  ServerResponceType Authorize(participant_ptr user, const Credentials& credentials) const override {
     if (credentials.login.empty() || credentials.password.empty()) {
       return ServerResponceType::INVALID_CREDENTIALS;
     }
 
+    std::lock_guard<std::mutex> lock(mutex_);
     if (!users_.count(credentials.login)) {
       return ServerResponceType::INCORRECT_LOGIN;
     }
@@ -55,5 +56,6 @@ public:
   }
 
 private:
+  mutable std::mutex mutex_;
   std::unordered_map<std::string, std::string> users_;
 };

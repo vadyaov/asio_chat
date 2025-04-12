@@ -5,11 +5,12 @@
 #include <mutex>
 #include <unordered_map>
 
-class IParticipant;
 class Room;
+class Lobby;
 
 class RoomMgr {
 public:
+  constexpr static const char * LOBBY_NAME = "!Lobby";
   RoomMgr();
 
   ServerResponceType createRoom(const std::string& room_id, participant_ptr creator);
@@ -18,10 +19,10 @@ public:
 
   std::vector<std::string> listRooms() const;
 
-  Room* lobby();
+  Lobby* lobby();
 
 private:
   mutable std::mutex mutex_;
-  std::unique_ptr<Room> lobby_;
+  std::unique_ptr<Lobby> lobby_;
   std::unordered_map<std::string, std::unique_ptr<Room>> rooms_;
 };

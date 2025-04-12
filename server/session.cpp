@@ -1,10 +1,11 @@
 #include "session.hpp"
+#include "auth-manager.hpp"
 #include "room-mgr.h"
 #include <system_error>
 #include <iostream>
 
 void Session::start() {
-  setRoom(room_mgr_->lobby());
+  set_room(room_mgr_->lobby());
   do_read_header();
 }
 
@@ -16,10 +17,8 @@ void Session::deliver(const server_message &msg) {
   }
 }
 
-Session::Session(asio::io_context &io, RoomMgr* room_mgr)
-    : socket_(io), room_mgr_(room_mgr) {
-  current_room_ = room_mgr_->lobby();
-}
+Session::Session(asio::io_context &io, RoomMgr* room_mgr, AuthManager* auth_mgr)
+    : socket_(io), room_mgr_(room_mgr), auth_mgr_(auth_mgr) {}
 
 void Session::do_read_header() {
   // std::cout << "Session::do_read_header: " << std::endl;
@@ -46,9 +45,7 @@ void Session::do_read_body() {
       [this](const std::error_code &ec, size_t /* bytes_transferred */) {
         if (!ec) {
           read_message_ = parser_.parse(read_message_);
-
           current_room_->onMessageReceived(shared_from_this(), read_message_);
-
           do_read_header();
         } else {
           std::cout << "Error read body" << std::endl;
